@@ -162,11 +162,12 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 							response.Frequency++
 							client.adapter.Set(key, response.Bytes(), response.Expiration)
 
-							//w.WriteHeader(http.StatusNotModified)
 							for k, v := range response.Header {
 								c.Response().Header().Set(k, strings.Join(v, ","))
 							}
 							c.Response().WriteHeader(http.StatusOK)
+							// write a custom header X-Cache: HIT
+							c.Response().Header().Set("X-Cache", "HIT")
 							c.Response().Write(response.Value)
 							return nil
 						}
