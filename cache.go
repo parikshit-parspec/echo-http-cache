@@ -346,7 +346,7 @@ func ClientWithRefreshKey(refreshKey string) ClientOption {
 func ClientWithMethods(methods []string) ClientOption {
 	return func(c *Client) error {
 		for _, method := range methods {
-			if method != http.MethodGet && method != http.MethodPost {
+			if method != http.MethodGet && method != http.MethodPost && method != http.MethodOptions {
 				return fmt.Errorf("invalid method %s", method)
 			}
 		}
