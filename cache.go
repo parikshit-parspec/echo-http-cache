@@ -71,6 +71,7 @@ type Client struct {
 	refreshKey      string
 	methods         []string
 	restrictedPaths []string
+	headers         []string
 }
 
 type bodyDumpResponseWriter struct {
@@ -120,9 +121,18 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 				next(c)
 				return nil
 			}
+			headers := []string{}
+			if client.headers != nil {
+				for _, h := range client.headers {
+					if c.Request().Header.Get(h) != "" {
+						headers = append(headers, c.Request().Header.Get(h))
+					}
+				}
+			}
+
 			if client.cacheableMethod(c.Request().Method) {
 				sortURLParams(c.Request().URL)
-				key := generateKey(c.Request().URL.String())
+				key := generateKey(c.Request().URL.String(), headers)
 				if c.Request().Method == http.MethodPost && c.Request().Body != nil {
 					body, err := ioutil.ReadAll(c.Request().Body)
 					defer c.Request().Body.Close()
@@ -131,7 +141,7 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 						return nil
 					}
 					reader := ioutil.NopCloser(bytes.NewBuffer(body))
-					key = generateKeyWithBody(c.Request().URL.String(), body)
+					key = generateKeyWithBody(c.Request().URL.String(), headers, body)
 					c.Request().Body = reader
 				}
 
@@ -140,7 +150,7 @@ func (client *Client) Middleware() echo.MiddlewareFunc {
 					delete(params, client.refreshKey)
 
 					c.Request().URL.RawQuery = params.Encode()
-					key = generateKey(c.Request().URL.String())
+					key = generateKey(c.Request().URL.String(), headers)
 
 					client.adapter.Release(key)
 				} else {
@@ -253,16 +263,26 @@ func KeyAsString(key uint64) string {
 	return strconv.FormatUint(key, 36)
 }
 
-func generateKey(URL string) uint64 {
+func generateKey(URL string, headers []string) uint64 {
 	hash := fnv.New64a()
-	hash.Write([]byte(URL))
+	bytes := []byte(URL)
+	for _, h := range headers {
+		bytes = append(bytes, []byte(h)...)
+	}
+	bytes = append(bytes, []byte(URL)...)
+	hash.Write(bytes)
 
 	return hash.Sum64()
 }
 
-func generateKeyWithBody(URL string, body []byte) uint64 {
+func generateKeyWithBody(URL string, headers []string, body []byte) uint64 {
 	hash := fnv.New64a()
-	body = append([]byte(URL), body...)
+	bytes := []byte(URL)
+	for _, h := range headers {
+		bytes = append(bytes, []byte(h)...)
+	}
+	bytes = append(bytes, []byte(URL)...)
+	body = append(bytes, body...)
 	hash.Write(body)
 
 	return hash.Sum64()
@@ -342,6 +362,15 @@ func ClientWithMethods(methods []string) ClientOption {
 func ClientWithRestrictedPaths(paths []string) ClientOption {
 	return func(c *Client) error {
 		c.restrictedPaths = paths
+		return nil
+	}
+}
+
+// ClientWithHeaders sets the headers to be considered when caching.
+// Optional setting.
+func ClientWithHeaders(headers []string) ClientOption {
+	return func(c *Client) error {
+		c.headers = headers
 		return nil
 	}
 }
