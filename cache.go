@@ -269,7 +269,6 @@ func generateKey(URL string, headers []string) uint64 {
 	for _, h := range headers {
 		bytes = append(bytes, []byte(h)...)
 	}
-	bytes = append(bytes, []byte(URL)...)
 	hash.Write(bytes)
 
 	return hash.Sum64()
@@ -281,7 +280,6 @@ func generateKeyWithBody(URL string, headers []string, body []byte) uint64 {
 	for _, h := range headers {
 		bytes = append(bytes, []byte(h)...)
 	}
-	bytes = append(bytes, []byte(URL)...)
 	body = append(bytes, body...)
 	hash.Write(body)
 
