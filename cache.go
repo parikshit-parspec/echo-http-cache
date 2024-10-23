@@ -111,6 +111,9 @@ type Adapter interface {
 
 	// Release frees cache for a given key.
 	Release(key uint64)
+
+	// Purges the entire cache.
+	Purge()
 }
 
 // Middleware is the HTTP cache middleware handler.
