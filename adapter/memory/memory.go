@@ -110,7 +110,14 @@ func (a *Adapter) Purge() {
 	a.store = make(map[uint64][]byte)
 }
 
+// caller must hold the lock
+func (a *Adapter) releaseLocked(key uint64) {
+	delete(a.store, key)
+}
+
 func (a *Adapter) evict() {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	selectedKey := uint64(0)
 	lastAccess := time.Now()
 	frequency := 2147483647
@@ -148,7 +155,7 @@ func (a *Adapter) evict() {
 		}
 	}
 
-	a.Release(selectedKey)
+	a.releaseLocked(selectedKey)
 }
 
 // NewAdapter initializes memory adapter.

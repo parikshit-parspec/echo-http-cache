@@ -41,6 +41,14 @@ func (a *adapterMock) Release(key uint64) {
 	delete(a.store, key)
 }
 
+func (a *adapterMock) Purge() {
+	{
+		a.Lock()
+		defer a.Unlock()
+		a.store = make(map[uint64][]byte)
+	}
+}
+
 func (errReader) Read(p []byte) (n int, err error) {
 	return 0, errors.New("readAll error")
 }
